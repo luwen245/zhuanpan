@@ -49,6 +49,7 @@ class ApiController extends BaseController
                 'secret'=> '67f9e91c4e0366045af7f29ea5516a91e0cf9064',
                 'code'=> $request['code']
             ];
+            
             $res = $service->getToken($data);
             if($res['code'] == 0) {
                 $user = $service->getUser($res['data']['access_token'],$data);
