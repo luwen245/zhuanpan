@@ -1,0 +1,21 @@
+<?php
+namespace App\Models;
+
+class Activity extends Base
+{
+    protected $guarded = ['id', 'updated_at'];
+
+    protected $dates = ['created_at', 'updated_at'];
+
+    protected  $table = "activities";
+
+    public function awards()
+    {
+        return $this->hasMany(Award::class,'activity_id','id');
+    }
+
+    public function business()
+    {
+        return $this->hasOne(Business::class,'activity_id','id')->select('kefu_mobile','id','name','address');
+    }
+}

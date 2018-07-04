@@ -1,0 +1,113 @@
+<?php
+
+if (! function_exists('action_name')) {
+    /**
+     * Get the path to the application method name.
+     *
+     * @param  string  $path
+     * @return string
+     */
+    function action_name()
+    {
+      $url  = \Route::currentRouteAction();
+
+      list($controller,$action) = explode('@',$url);
+
+      return $action;
+    }
+}
+
+//递归生成目录树
+if (!function_exists('create_node_tree')) {
+
+    /**
+     * 生成二维数组节点树
+     *
+     * @param    $data
+     * @param int $parent_id
+     * @param string $name
+     *
+     * @return array
+     */
+    function create_node_tree($data, $parent_id = 0, $name = 'child')
+    {
+        $tree = [];
+
+        foreach ($data as $item) {
+            if ($item['parent_id'] === $parent_id) {
+                $item[$name] = create_node_tree($data, $item['id']);
+                $tree[] = $item;
+            }
+        }
+
+        return $tree;
+    }
+
+}
+
+//计算中奖概率
+if (!function_exists('format_award')) {
+    function format_award($data)
+    {
+        $arr = [];
+        foreach ($data as $key => $item) {
+            $arr[$key]['id'] = $key + 1;
+            $arr[$key]['award_id'] = $item->id;
+            $arr[$key]['prize'] = $item->prize_level;
+            $arr[$key]['v'] = $item->percent;
+            $arr[$key]['status'] = TRUE;
+        }
+        return $arr;
+    }
+}
+
+//改变状态
+if (!function_exists('change_status'))
+{
+    function change_status($item)
+    {  // 0 未发布  1 发布 2 未开始  3 进行中 4 已结束
+       if($item->status == 1){
+           if($item->started_at > date('Y-m-d h:m:s')){
+               return 2;
+           }elseif(date('Y-m-d h:m:s') > $item->started_at && date('Y-m-d h:m:s') < $item->ended_at){
+               return 3;
+           }elseif (date('Y-m-d h:m:s') < $item->ended_at){
+               return 4;
+           }
+       } else{
+          return $item->status;
+       }
+    }
+}
+
+//加密字符串
+if (! function_exists('getEncryptStr')) {
+    function getEncryptStr($num)
+    {
+        $str = getRandomStr();
+        $front_str =  substr($str,0,4);
+        $back_str =   substr($str,-4,4);
+        return $front_str.$num.$back_str;
+    }
+}
+
+//解密字符串
+if (! function_exists('getDecryptStr')) {
+    function getDecryptStr($str)
+    {
+        return substr(substr($str,4),0,-4);
+    }
+}
+
+if (! function_exists('getRandomStr')) {
+    function getRandomStr()
+    {
+        $str="0123456789";
+        $key = "";
+        for($i=0;$i<8;$i++)
+        {
+            $key .= $str{mt_rand(0,9)};    //生成php随机数
+        }
+        return $key;
+    }
+}

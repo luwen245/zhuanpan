@@ -1,0 +1,18 @@
+<?php
+
+namespace App\Repositories;
+
+use App\Models\Member;
+
+class MemberRepository
+{
+    //同一个命名空间下可以直接调用
+     use BaseTrait;
+     protected  $model;
+
+     public function __construct(Member $model)
+     {
+         $this->model = $model;
+     }
+     
+}

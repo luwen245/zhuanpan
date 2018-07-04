@@ -1,0 +1,241 @@
+<?php
+
+namespace App\Http\Controllers\V1;
+
+use App\Http\Controllers\BaseController;
+use App\Http\Requests\AwardRequest;
+use App\Repositories\AwardRecordRepository;
+use App\Repositories\AwardRepository;
+use Illuminate\Http\Request;
+
+class AwardController extends BaseController
+{
+    protected $awardRepository;
+
+    public function __construct(AwardRepository  $awardRepository)
+    {
+        $this->awardRepository = $awardRepository;
+    }
+
+    /**
+     * @api {get} /admin/v1/award 获取活动奖品(奖项设置)
+     * @apiDescription 获取活动奖品
+     * @apiGroup Award
+     * @apiPermission none
+     * @apiParam  activity_id   活动id
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     *   HTTP/1.1 200 OK
+     *   {
+     *   }
+     */
+    public function index(AwardRequest $request)
+    {
+       $data = $this->awardRepository->getRecord($request);
+
+       return $this->success('获取成功！',[
+           'page' => $data->currentPage(),
+           'total' => $data->total(),
+           'lastPage'=>$data->lastPage(),
+           'list' => $data->toArray()['data']
+       ]);
+    }
+
+    /**
+     * @api {post} /admin/v1/award 添加活动奖品
+     * @apiDescription 添加活动奖品
+     * @apiGroup Award
+     * @apiPermission none
+     * @apiParam  activity_id   活动id
+     * @apiParam  prize_name   奖品名称
+     * @apiParam  prize_level  奖品等级
+     * @apiParam  percent   中奖概率
+     * @apiParam  prize_pic   中奖图片
+     * @apiParam  sku  奖品数量
+     * @apiParam  sku_show   奖品数量是否显示
+     * @apiParam  mwtimes   每天最多出奖数
+     * @apiParam  is_winned   是否出奖
+     * @apiParam  type   兑奖方式
+     * @apiParam  address   兑奖地址
+     * @apiParam  is_fixed   时间是否固定
+     * @apiParam  [cstimes]   兑奖开始时间
+     * @apiParam  [cetimes]   兑奖结束时间
+     * @apiParam  notice   兑奖须知
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * {
+     * }
+     */
+    public function store(AwardRequest $request)
+    {
+        //奖品中奖率 是否超过100%
+        $percent = $this->awardRepository->countPercent($request['activity_id']);
+        if($percent + $request['percent'] > 100){
+            return $this->error("奖品总中奖率已经高于100%!");
+        }
+
+        $data = $this->awardRepository->store($request->all());
+        if($data){
+            return $this->success('添加成功！',$data);
+        }else{
+            return $this->error('添加失败！');
+        }
+    }
+
+    /**
+     * @api {put} /admin/v1/award/:id 编辑活动奖品
+     * @apiDescription 编辑活动奖品
+     * @apiGroup Award
+     * @apiPermission none
+     * @apiParam  id   文件名称
+     * @apiParam  activity_id  活动id
+     * @apiParam  prize_name   奖品名称
+     * @apiParam  prize_level  奖品等级
+     * @apiParam  percent   中奖概率
+     * @apiParam  prize_pic   中奖图片
+     * @apiParam  sku  奖品数量
+     * @apiParam  sku_show   奖品数量是否显示
+     * @apiParam  mwtimes   每天最多出奖数
+     * @apiParam  is_winned   是否出奖
+     * @apiParam  type   兑奖方式
+     * @apiParam  address   兑奖地址
+     * @apiParam  is_fixed   时间是否固定
+     * @apiParam  cstime   兑奖开始时间
+     * @apiParam  cetime   兑奖结束时间
+     * @apiParam  notice   兑奖须知
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     *   HTTP/1.1 200 OK
+     *   {
+     *   }
+     */
+    public function update(AwardRequest $request, $id)
+    {
+        $percent = $this->awardRepository->countPercentWithoutSelf($request['activity_id'],$id);
+        if($percent + $request['percent'] > 100){
+            return $this->error("奖品总中奖率已经高于100%!");
+        }
+
+        $data = $this->awardRepository->updateColumn($id,$request->all());
+
+        if($data){
+            return $this->success('编辑成功！',$data);
+        }else{
+            return $this->error('编辑失败！');
+        }
+    }
+
+    /**
+     * @api {delete} /admin/v1/award 删除活动奖品
+     * @apiDescription 删除活动奖品
+     * @apiGroup Award
+     * @apiPermission none
+     * @apiParam  id   活动Id
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * {
+     * }
+     */
+    public function destroy($id)
+    {
+        $data = $this->awardRepository->destroy($id);
+
+        if($data){
+            return $this->success('删除成功！',$data);
+        }else{
+            return $this->error('删除失败！');
+        }
+    }
+
+
+    /**
+     * @api {post} /admin/v1/award/cash 兑奖
+     * @apiDescription 兑奖
+     * @apiGroup Award
+     * @apiPermission none
+     * @apiParam  id    奖品id
+     * @apiParam  code   兑奖码
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * {
+     * }
+     */
+    public function cash(AwardRequest $request,AwardRecordRepository $awardRecordRepository)
+    {
+        $awardRecord = $awardRecordRepository->getById($request['id']);
+
+        if($awardRecord){
+            if($awardRecord->code == $request['code']){
+                $awardRecord->update(['is_checked'=>1]);
+
+                return $this->success('兑奖成功');
+            }else{
+                return $this->error('兑奖码不正确');
+            }
+        }else{
+            return $this->error('该奖品不存在！');
+        }
+    }
+
+    /**
+     * @api {post} /admin/v1/award/record 活动数据
+     * @apiDescription 活动数据
+     * @apiGroup Award
+     * @apiPermission none
+     * @apiParam  activity_id  该转盘活动id
+     * @apiParam  [name]   姓名
+     * @apiParam  [mobile]   手机号码
+     * @apiParam  [prize_level]   奖励等级
+     * @apiParam  [is_checked]   兑奖状态
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * {
+     * }
+     */
+    public function record(AwardRequest $request,AwardRecordRepository $awardRecordRepository)
+    {
+        $data = $awardRecordRepository->getAward($request);
+
+        foreach ($data as $item){
+            $item->award;
+            $item->member;
+        }
+
+        return $this->success('获取成功！',[
+            'page' => $data->currentPage(),
+            'total' => $data->total(),
+            'lastPage'=>$data->lastPage(),
+            'list' => $data->toArray()['data']
+        ]);
+    }
+
+    /**
+     * @api {get} /admin/v1/prizeLevel 奖项等级
+     * @apiDescription 奖项等级
+     * @apiGroup Award
+     * @apiPermission none
+     * @apiParam  activity_id   活动Id
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * {
+     * }
+     */
+    public function prizeLevel(Request $request)
+    {
+        $data = $this->awardRepository->getPrizeLevel($request['activity_id']);
+
+        if($data){
+            return $this->success('删除成功！',$data);
+        }else{
+            return $this->error('删除失败！');
+        }
+    }
+
+
+
+}

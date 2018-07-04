@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Http\Requests;
+
+class UserRequest extends BaseRequest
+{
+    protected $rules = [
+        'name'=>'required',
+        'password'=>'required'
+    ];
+
+    protected $messages = [
+        'name.required'=>'姓名不能为空！',
+        'password.required'=>'密码不能为空！'
+    ];
+
+    public function authorize()
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
+    public function rules()
+    {
+      if(action_name() == 'login'){
+            $this->rules['password'] = 'required';
+        }
+
+        if(action_name() == 'register'){
+            $this->rules['name'] = ['required', 'unique:users'];
+            $this->rules['role_id'] = 'required';
+        }
+
+        return $this->rules;
+    }
+
+    public function messages ()
+    {
+        if(action_name() == 'login'){
+            $this->messages['password.required'] = '密码不能为空!';
+        }
+
+        if(action_name() == 'register'){
+            $this->messages['name.unique'] = '用户名必须唯一!';
+            $this->messages['role_id.required'] = '角色id不能为空';
+        }
+
+        return $this->messages;
+    }
+}

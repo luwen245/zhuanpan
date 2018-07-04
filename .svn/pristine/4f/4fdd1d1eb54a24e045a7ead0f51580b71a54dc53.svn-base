@@ -1,0 +1,282 @@
+<?php
+
+namespace App\Http\Controllers\V1;
+
+use App\Http\Controllers\BaseController;
+use App\Http\Requests\ActivityRequest;
+use App\Repositories\ActivityRepository;
+use App\Repositories\AwardRepository;
+use App\Repositories\BusinessRepository;
+use Illuminate\Http\Request;
+
+class ActivityController extends BaseController
+{
+    protected $activityRepository;
+
+    public function __construct(ActivityRepository $activityRepository)
+    {
+        $this->activityRepository = $activityRepository;
+    }
+
+    /**
+     * @api {get} /admin/v1/activity 大转盘列表
+     * @apiDescription 大转盘列表
+     * @apiGroup Activity
+     * @apiPermission none
+     * @apiParam  user_id   用户id
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     *   HTTP/1.1 200 OK
+     *   {
+     *   }
+     */
+    public function index(ActivityRequest $request)
+    {
+       $data = $this->activityRepository->getData($request);
+
+       foreach ($data as $item){
+           $item->link = config('config.domain').'?activity_id='.$item->id;
+
+           $item->status = change_status($item);
+       }
+
+       return $this->success('获取成功！',[
+           'page' => $data->currentPage(),
+           'total' => $data->total(),
+           'lastPage'=>$data->lastPage(),
+           'list' => $data->toArray()['data']
+       ]);
+    }
+
+    /**
+     * @api {get} /admin/v1/activity/:id 大转盘详情
+     * @apiDescription 大转盘详情
+     * @apiGroup Activity
+     * @apiPermission none
+     * @apiParam  id   大转盘id
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * {
+     * }
+     */
+    public function show($id)
+    {
+        $activity = $this->activityRepository->getById($id);
+
+        $activity->awards;
+
+        return $this->success('获取成功!',$activity);
+    }
+
+    /**
+     * @api {post} /admin/v1/activity 添加大转盘活动
+     * @apiDescription 添加大转盘活动
+     * @apiGroup Activity
+     * @apiPermission none
+     * @apiParam  user_id   用户id
+     * @apiParam  title   活动名称
+     * @apiParam  remark   分享描述
+     * @apiParam  started_at   开始时间
+     * @apiParam  ended_at   结束时间
+     * @apiParam  share_pic   分享图片
+     * @apiParam  is_follow   是否关注公众号
+     * @apiParam  is_show   是否显示参与人数
+     * @apiParam  desc   活动说明
+     * @apiParam  is_broadcast   是否轮播中奖信息
+     * @apiParam  show_name   姓名
+     * @apiParam  show_mobile   手机号码
+     * @apiParam  show_address   联系地址
+     * @apiParam  [pnumber]   参与活动人数
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     *   HTTP/1.1 200 OK
+     *   {
+     *   }
+     */
+    public function store(ActivityRequest $request)
+    {
+      //大转盘提交的信息
+      $data = $this->activityRepository->storeActivity($request);
+
+      if($data){
+          return $this->success('添加成功！',$data);
+      }else{
+          return $this->error('添加失败！');
+      }
+    }
+
+    /**
+     * @api {put} /admin/v1/activity/:id 编辑大转盘活动
+     * @apiDescription 编辑大转盘活动
+     * @apiGroup Activity
+     * @apiPermission none
+     * @apiParam  user_id   用户id
+     * @apiParam  title   活动名称
+     * @apiParam  remark   分享描述
+     * @apiParam  started_at   开始时间
+     * @apiParam  ended_at   结束时间
+     * @apiParam  share_pic   分享图片
+     * @apiParam  is_follow   是否关注公众号
+     * @apiParam  is_show   是否显示参与人数
+     * @apiParam  desc   活动说明
+     * @apiParam  is_broadcast   是否轮播中奖信息
+     * @apiParam  show_name   姓名
+     * @apiParam  show_mobile   手机号码
+     * @apiParam  show_address   联系地址
+     * @apiParam  [pnumber]   参与活动人数
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     *   HTTP/1.1 200 OK
+     *   {
+     *   }
+     */
+    public function update(ActivityRequest $request, $id)
+    {
+        $data = $this->activityRepository->updateColumn($id,$request->all());
+
+        if($data){
+            return $this->success('编辑成功！',$data);
+        }else{
+            return $this->error('编辑失败！');
+        }
+    }
+
+    /**
+     * @api {delete} /v1/activity/:id 删除大转盘
+     * @apiDescription 删除大转盘
+     * @apiGroup Activity
+     * @apiPermission none
+     * @apiParam  id   大转盘id
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * {
+     * }
+     */
+    public function destroy($id,AwardRepository $awardRepository)
+    {
+        $res = $this->activityRepository->destroy($id);
+        $awardRepository->deleteAwards($id);
+
+        if($res) {
+            return $this->success('删除成功!',$res);
+        }else{
+            return $this->error('删除成功!');
+        }
+    }
+
+    /**
+     * @api {post} /admin/v1/activity/rule/:activity_id 规则设置
+     * @apiDescription 规则设置
+     * @apiGroup Activity
+     * @apiPermission none
+     * @apiParam  activity_id   大转盘id
+     * @apiParam  is_limited   是否限制每人总共参与次数
+     * @apiParam  e_atimes   每人总共参与次数
+     * @apiParam  e_etimes   每人每天参与次数
+     * @apiParam  e_wtimes   每人总共中奖次数
+     * @apiParam  e_ewtimes   每人每天总中间次数
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     *   HTTP/1.1 200 OK
+     *   {
+     *   }
+     */
+     public function rule(ActivityRequest $request,$id)
+     {
+         $activity  = $this->activityRepository->getById($id);
+
+         if($activity){
+             $res = $activity->update($request->all());
+
+             if($res){
+                 return $this->success('更新成功！',$res);
+             }else{
+                 return $this->error('更新失败！');
+             }
+         }else{
+             return $this->error('该活动不存在！');
+         }
+     }
+
+    /**
+     * @api {post} /admin/v1/activity/business/:activity_id 商家设置
+     * @apiDescription 商家设置
+     * @apiGroup Activity
+     * @apiPermission none
+     * @apiParam  activity_id   大转盘id
+     * @apiParam  name   商家名称
+     * @apiParam  logo   商家logo
+     * @apiParam  logo_show   是否显示logo
+     * @apiParam  loading_pic   加载页面
+     * @apiParam  loading_show   是否显示加载页面
+     * @apiParam  kefu_mobile   客服电话
+     * @apiParam  bgm   背景音乐
+     * @apiParam  bgm_show  bgm是否展示
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     *   HTTP/1.1 200 OK
+     *   {
+     *   }
+     */
+    public function business($id,ActivityRequest $request,BusinessRepository $businessRepository)
+    {
+        $res = $businessRepository->storeOrUpdate($id,$request);
+
+        if($res){
+            return $this->success('操作成功！',$res);
+        }else{
+            return $this->error('设置商家失败！');
+        }
+    }
+
+    /**
+     * @api {get} /v1/activity/publish/:id 发布活动
+     * @apiDescription 发布活动
+     * @apiGroup Activity
+     * @apiPermission none
+     * @apiParam  id   大转盘id
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * {
+     * }
+     */
+    public function publish($id)
+    {
+        $activity = $this->activityRepository->getById($id);
+
+        if($activity){
+            $res = $activity->update(['status'=>1]);
+
+            return $this->success('操作成功！',$res);
+        }else{
+            return $this->error('该活动不存在！');
+        }
+    }
+
+    //活动说明
+    /**
+     * @api {get} /api/v1/desc 发布活动
+     * @apiDescription 发布活动
+     * @apiGroup Activity
+     * @apiPermission none
+     * @apiParam  activity_id   activity_id
+     * @apiVersion 0.1.0
+     * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * {
+     * }
+     */
+    public function desc(ActivityRequest $request)
+    {
+        $activity = $this->activityRepository->getById(getDecryptStr($request['activity_id']));
+
+        $activity->awards;
+
+        $activity->business;
+
+        return $this->success('获取成功！',$activity);
+    }
+}

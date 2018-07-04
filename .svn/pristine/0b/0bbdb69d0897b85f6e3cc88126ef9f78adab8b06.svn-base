@@ -1,0 +1,16 @@
+{
+  "name": "api接口",
+  "version": "0.1.0",
+  "description": "大转盘接口",
+  "title": "统一接口系统",
+  "url": "http://homestead.app",
+  "sampleUrl": false,
+  "defaultVersion": "0.0.0",
+  "apidoc": "0.3.0",
+  "generator": {
+    "name": "apidoc",
+    "time": "2018-06-28T09:02:37.178Z",
+    "url": "http://apidocjs.com",
+    "version": "0.17.6"
+  }
+}

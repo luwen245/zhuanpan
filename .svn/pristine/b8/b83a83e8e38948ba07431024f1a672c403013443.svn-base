@@ -1,0 +1,45 @@
+<?php
+
+//入口api
+//apidoc -i App/Http/Controllers/V1/ -o public/apidoc/
+Route::group(['prefix'=>'admin/v1','namespace'=>'V1'],function ($api)
+{
+    //后台入口
+    $api->get('/entry','ApiController@adminEntry');
+
+    //活动
+    $api->resource('/activity','ActivityController');
+
+    //发布活动
+    $api->get('/activity/publish/{id}','ActivityController@publish');
+
+    //规则设置
+    $api->post('/activity/rule/{id}','ActivityController@rule');
+
+    //商家设置
+    $api->post('/activity/business/{id}','ActivityController@business');
+
+    //奖品
+    $api->resource('/award','AwardController');
+
+    //兑奖
+    $api->post('/award/cash','AwardController@cash');
+
+    //后台中奖记录
+    $api->post('/award/record','AwardController@record');
+
+    //上传
+    $api->post('/upload','SystemController@upload');
+});
+
+/**
+ * 入口 user_id 活动所属的人
+ *
+ * 前台入口 后台入口
+ *
+ * 大转盘活动 -> 活动奖励
+ *
+ *
+ *
+ * 结果 中奖 没中奖
+ */

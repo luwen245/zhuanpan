@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Repositories;
+
+
+use App\Models\Activity;
+
+class ActivityRepository
+{
+    //同一个命名空间下可以直接调用
+     use BaseTrait;
+     protected  $model;
+
+     public function __construct(Activity $model)
+     {
+         $this->model = $model;
+     }
+
+     public function getData($request)
+     {
+         $searchObj = $this->model->where(function ($search) use ($request)
+         {
+             //活动名称搜索
+             $search->where('title','LIKE','%'.$request['title'].'%');
+         });
+
+         return $searchObj
+             ->where(['user_id'=>$request['user_id']])
+             ->select('id','title','created_at','updated_at','status','pnumber','real_pnumber','url','started_at','ended_at')
+             ->paginate(5);
+     }
+
+     public function storeActivity($request)
+     {
+        $activity = $this->model->create($request->all());
+
+        if($activity){
+            $qrcode_url = config('config.domain').'/entry?activity_id='.$activity->id;
+            $url = 'qrcode/'.'/'.sha1(microtime()).'.png';
+
+            \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
+                ->size(400)
+                // ->merge(public_path().'/images/ceshi.png',.3,true)
+                ->encoding('UTF-8')
+                ->generate($qrcode_url,public_path($url));
+
+            $activity->update(['qrcode_url'=>$qrcode_url]);
+            $activity->update(['url'=>$url]);
+
+            return $activity;
+        }else{
+            return FALSE;
+        }
+     }
+}

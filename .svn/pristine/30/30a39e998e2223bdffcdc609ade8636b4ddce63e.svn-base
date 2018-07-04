@@ -1,0 +1,37 @@
+<?php
+
+//入口api
+//apidoc -i App/Http/Controllers/Admin/ -o public/apidoc/
+
+Route::group(['prefix'=>'api/v1','namespace'=>'V1'],function ($api){
+
+    //前台入口
+    $api->get('/entry','ApiController@entry');
+
+    //我的奖项
+    $api->post('/award/my','ApiController@my');
+
+    //摇奖的过程 imp
+    $api->post('/prize','ApiController@prize');
+
+    //个人信息提交
+    $api->post('/person','ApiController@person');
+
+    $api->post('/baseInfo','ApiController@baseInfo');
+
+    //活动说明页
+    $api->get('/desc','ActivityController@desc');
+
+
+});
+
+/**
+ * 入口 user_id 活动所属的人
+ *
+ * 前台入口 后台入口
+ *
+ * 大转盘活动 -> 活动奖励
+ *
+ * 结果 中奖 没中奖
+ *
+ */

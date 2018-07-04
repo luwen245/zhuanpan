@@ -1,0 +1,180 @@
+<?php
+
+namespace App\Services;
+
+
+class ApiService
+{
+    //请求地址
+    const apiurl = "http://5.vyicoo.com/api/v1/openapi/";
+
+    //平台ID
+    const  platform_id = "8000";
+
+    //产品ID
+    const  product_id = "1022";
+
+    //产品
+    const secret = "6da8d7b5f59b07bac860475ce241ae34dd960c2e";
+
+    //token获取
+    public function getToken ($data)
+    {
+        return $this->CurlPost("accessToken", $data);
+    }
+
+    //获取手机图片验证码（无需要认证权限请求）
+    public function getCaptchas ($data)
+    {
+        return $this->CurlGet("captchas", $data);
+    }
+
+    //发送手机验证码
+    public function getSms ($data)
+    {
+        return $this->CurlPost("sms", $data);
+    }
+
+    //账户注册
+    public function postRegister ($data)
+    {
+        return $this->CurlPost("register", $data);
+    }
+
+    //获取用户信息
+    public function getUser ($token, $data)
+    {
+        $headers = [
+            "Authorization: Bearer " . $token
+        ];
+
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, self::apiurl . 'user?' . http_build_query($data));
+        curl_setopt($curl, CURLOPT_HEADER, 0);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_TIMEOUT, '60');
+        $response = curl_exec($curl);
+        if ($response === false) {
+            if (curl_errno($curl) == CURLE_OPERATION_TIMEDOUT) {
+                throw new  \Exception('请求超时');
+            }
+        }
+        curl_close($curl);
+        return json_decode($response, true);
+    }
+
+    protected function CurlGet ($url, $data, $token = null)
+    {
+        $headers = [
+            "Authorization" => "Bearer " . $token
+        ];
+
+        $staticdata = [
+            "platform_id" => self::platform_id,
+            "product_id" => self::product_id,
+            "secret" => self::secret
+        ];
+
+        $data = array_merge($staticdata, $data);
+
+        $params = '';
+        foreach ($data as $key => $val) {
+            if ($params && (!empty($val) || $val == 0)) {
+                $params = $params . "&" . $key . "=" . $val;
+            } else if (!empty($val) || $val == 0) {
+                $params = "?" . $key . "=" . $val;
+            }
+        }
+
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, self::apiurl . $url . $params);
+        curl_setopt($curl, CURLOPT_HEADER, 0);
+        if ($token) {
+            curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        }
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_TIMEOUT, '60');
+        $response = curl_exec($curl);
+        if ($response === false) {
+            if (curl_errno($curl) == CURLE_OPERATION_TIMEDOUT) {
+                throw new  \Exception('请求超时');
+            }
+        }
+        curl_close($curl);
+        return json_decode($response, true);
+    }
+
+    protected function CurlPost ($url, $data, $token = null)
+    {
+        $headers = [
+            "Authorization" => "Bearer " . $token
+        ];
+
+        $staticdata = [
+            "platform_id" => self::platform_id,
+            "product_id" => self::product_id,
+            "secret" => self::secret
+        ];
+
+        $data = array_merge($staticdata, $data);
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, self::apiurl . $url);
+        curl_setopt($curl, CURLOPT_HEADER, 0);
+        if ($token) {
+            curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        }
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_POST, 1);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($curl, CURLOPT_TIMEOUT, '60');
+        $response = curl_exec($curl);
+        if ($response === false) {
+            if (curl_errno($curl) == CURLE_OPERATION_TIMEDOUT) {
+                throw new  \Exception('请求超时');
+            }
+        }
+
+        curl_close($curl);
+        return json_decode($response, true);
+    }
+
+    //刷新token获取
+    public function putToken($accessToken,$data)
+    {
+        return $this->CurlPut("accessToken",$accessToken,$data);
+    }
+
+    protected function CurlPut($url,$accessToken ,$data)
+    {
+        $headers = array(
+            "Authorization:Bearer " . $accessToken
+        );
+
+        $staticdata = [
+            "product_id" => self::product_id,
+            "secret" => self::secret,
+            "platform_id" => self::platform_id,
+        ];
+
+        $data = array_merge($staticdata, $data);
+
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, self::apiurl . $url);
+        curl_setopt($curl, CURLOPT_HEADER, 0);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($curl, CURLOPT_TIMEOUT, '60');
+        $response = curl_exec($curl);
+        if ($response === false) {
+            if (curl_errno($curl) == CURLE_OPERATION_TIMEDOUT) {
+                throw new  \Exception('请求超时');
+            }
+        }
+        curl_close($curl);
+        return json_decode($response, true);
+    }
+
+}
